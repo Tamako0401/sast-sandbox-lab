@@ -1,0 +1,6 @@
+.cache/
+rootfs/
+release-assets/
+dist/
+rootfs.tar.zst
+rootfs.tar.zst.sha256

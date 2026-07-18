@@ -1,0 +1,6 @@
+NAME="SAST Sandbox Rootfs"
+ID=sast-sandbox
+VERSION="2026.8"
+VERSION_ID="2026.8"
+PRETTY_NAME="SAST Sandbox Rootfs 2026.8"
+

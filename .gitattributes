@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.zst binary
+*.sha256 text eol=lf
+
