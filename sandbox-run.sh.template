@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOTFS="$(realpath ./rootfs)"
+TARGET="$(realpath "${1:?usage: sudo ./sandbox-run <job.sh|workspace>}")"
+CGROUP_NAME="sast-box-$$"
+
+if (( EUID != 0 )); then
+    echo "please run this script with sudo" >&2
+    exit 1
+fi
+
+if [[ ! -d "${ROOTFS}" ]]; then
+    echo "rootfs not found: ${ROOTFS}" >&2
+    exit 1
+fi
+
+cleanup() {
+    # TODO 6: 卸载本题创建的挂载，并移除本题创建的 cgroup。
+    # 清理函数应可重复调用；不要递归卸载或删除不属于本题的路径。
+    :
+}
+trap cleanup EXIT INT TERM
+
+# TODO 1: 创建独立的 UTS、PID 和 mount namespace。
+# TODO 2: 将 TARGET 只读或可控地放入 rootfs 的 /workspace。
+# TODO 3: 在新的 mount namespace 中挂载 rootfs/proc；为后台任务仅绑定
+#         /dev/null，不要把宿主的整个 /dev 暴露给任务。
+# TODO 4: 进入 rootfs，并使用 /bin/sh 执行任务。
+# TODO 5: 创建 cgroup v2，设置 pids.max，并把任务进程加入该 cgroup。
+
+echo "TODO: implement sandbox-run" >&2
+exit 1
