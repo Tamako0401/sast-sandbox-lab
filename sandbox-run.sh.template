@@ -2,8 +2,12 @@
 set -euo pipefail
 
 ROOTFS="$(realpath ./rootfs)"
-TARGET="$(realpath "${1:?usage: sudo ./sandbox-run <job.sh|workspace>}")"
-CGROUP_NAME="sast-box-$$"
+TARGET="$(realpath "${1:?usage: sudo ./sandbox-run <job.sh>}")"
+
+# 在 unshare 前记录宿主 namespace，供 job.sh 在盒内安全地比较。
+SAST_HOST_UTS_NS="$(readlink /proc/self/ns/uts)"
+SAST_HOST_PID_NS="$(readlink /proc/self/ns/pid)"
+SAST_HOST_MNT_NS="$(readlink /proc/self/ns/mnt)"
 
 if (( EUID != 0 )); then
     echo "please run this script with sudo" >&2
@@ -16,8 +20,8 @@ if [[ ! -d "${ROOTFS}" ]]; then
 fi
 
 cleanup() {
-    # TODO 6: 卸载本题创建的挂载，并移除本题创建的 cgroup。
-    # 清理函数应可重复调用；不要递归卸载或删除不属于本题的路径。
+    # TODO 5: 卸载本题创建的挂载。
+    # 清理函数应可重复调用；不要递归卸载不属于本题的路径。
     :
 }
 trap cleanup EXIT INT TERM
@@ -26,8 +30,8 @@ trap cleanup EXIT INT TERM
 # TODO 2: 将 TARGET 只读或可控地放入 rootfs 的 /workspace。
 # TODO 3: 在新的 mount namespace 中挂载 rootfs/proc；为后台任务仅绑定
 #         /dev/null，不要把宿主的整个 /dev 暴露给任务。
-# TODO 4: 进入 rootfs，并使用 /bin/sh 执行任务。
-# TODO 5: 创建 cgroup v2，设置 pids.max，并把任务进程加入该 cgroup。
+# TODO 4: 进入 rootfs，传入上面的三个 SAST_HOST_*_NS 变量，并使用
+#         /bin/sh 执行 /workspace/job.sh。
 
 echo "TODO: implement sandbox-run" >&2
 exit 1

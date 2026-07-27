@@ -1,7 +1,8 @@
 # SAST Sandbox Lab
 
 这是第三题的出题组材料。它只提供可运行的最小 rootfs、待补全的
-`sandbox-run` 脚手架和三个验收任务，不提供完整 Runner。
+`sandbox-run` 脚手架和一个合并后的验收任务 `job.sh`，不提供完整
+Runner。
 
 ## 文件说明
 
@@ -11,10 +12,7 @@ sast-sandbox-lab/
 ├── rootfs.tar.zst.sha256
 ├── build-rootfs.sh
 ├── sandbox-run.sh.template
-├── jobs/
-│   ├── 01-normal.sh
-│   ├── 02-namespace.sh
-│   └── 03-process-limit.sh
+├── job.sh
 ├── rootfs-overlay/
 └── THIRD_PARTY_NOTICES.md
 ```
@@ -58,8 +56,9 @@ cp sandbox-run.sh.template sandbox-run
 chmod +x sandbox-run
 ```
 
-学生在第二题修好的 Gitea 中创建自己的仓库，加入出题组提供的一个
-`job.sh`，再手动克隆到第一题的 Ubuntu 24.04 环境。预期调用关系是：
+学生在第二题修好的 Gitea 中创建自己的仓库，加入出题组提供的
+`job.sh`，再手动克隆到第一题的 Ubuntu 24.04 环境。克隆必须发生在
+隔离环境外，预期调用关系是：
 
 ```text
 Gitea 仓库 -> 手动 git clone -> 本地工作目录 -> sandbox-run -> job.sh
@@ -71,10 +70,31 @@ Gitea 仓库 -> 手动 git clone -> 本地工作目录 -> sandbox-run -> job.sh
 sudo ./sandbox-run ./job.sh
 ```
 
-学生提交时至少展示：宿主机 hostname 在任务前后不变、盒内 `ps -ef`
-看不到宿主机完整进程列表、盒内 `/proc` 是新挂载，以及
-`03-process-limit.sh` 在有限次数内遇到进程创建失败。测试脚本最多尝试
-50 个短生命周期进程，不包含无限递归 fork bomb。
+`job.sh` 会依次检查题面的五项预期：
+
+1. UTS namespace 独立，且只在确认独立后测试盒内 hostname 修改；
+2. PID namespace 独立，`/proc/1` 属于盒内 PID namespace；
+3. mount namespace 独立，`/proc` 是盒内单独挂载的 proc 文件系统；
+4. `/etc/sast-rootfs-release` 能确认正在使用出题组的最小 rootfs；
+5. 预先克隆的 `job.sh` 从 `/workspace` 暴露给盒内，盒内无需提供 Git。
+
+单项检查失败不会让后续检查中断。所有检查执行完毕后，脚本统一输出
+`overall: COMPLETE` 或 `overall: INCOMPLETE`；未完成时最终退出码为 1。
+
+为了让 `job.sh` 能安全、准确地比较 namespace，学生的 `sandbox-run`
+应在调用 `unshare` 前读取宿主机的 namespace 标识，并将它们分别通过
+`SAST_HOST_UTS_NS`、`SAST_HOST_PID_NS`、`SAST_HOST_MNT_NS` 传入盒内。
+例如宿主标识可由以下命令取得：
+
+```bash
+readlink /proc/self/ns/uts
+readlink /proc/self/ns/pid
+readlink /proc/self/ns/mnt
+```
+
+若缺少这些基准值，`job.sh` 会把对应项目记为失败但继续完成其余检查。
+这样即使 Runner 尚未正确创建 UTS namespace，验收脚本也不会贸然修改
+宿主机 hostname。
 
 ## 分发建议
 
